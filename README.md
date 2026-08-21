@@ -7,3 +7,4 @@ Participants:
 Suleiman Amin
 Mohamedtaha Souida
 Abdimalik Dahir
+Alex Vu 
