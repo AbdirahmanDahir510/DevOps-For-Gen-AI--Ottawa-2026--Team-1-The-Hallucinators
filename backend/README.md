@@ -1,78 +1,184 @@
-# Sample RAG chatbot — starter kit
+# Sample RAG Chatbot — Local Llama (Ollama) Version
 
-This is the target app that the attack and chaos modules will test against.
+A small Retrieval-Augmented Generation (RAG) chatbot that answers questions using a handful
+of sample documents. This version runs **entirely locally** using [Ollama](https://ollama.com)
+and the `llama3.2` model — no API key, no subscription, no internet connection required once
+set up. It's the target system that our attack and chaos modules test against.
 
-## What it does
+---
 
-1. `sample_docs/` holds a few plain-text documents (company policy, FAQ, onboarding guide).
-2. `ingest.py` chunks those docs, builds a TF-IDF index, and saves it plus the fitted vectorizer to disk.
-3. `retrieve.py` loads that index and, given a question, returns the top-k most similar chunks.
-4. `app.py` exposes a `/ask` API: it retrieves chunks for a question, builds a prompt with them as context, and asks a locally running LLM (via Ollama) to answer using only that context.
+## How it works
 
-## Two versions of the API
+1. **Ingestion** — `sample_docs/*.txt` are split into small chunks and converted into TF-IDF
+   vectors (a way of turning text into numbers based on word importance).
+2. **Storage** — the chunks and their vectors are saved to `index.json` and `vectorizer.pkl`.
+3. **Retrieval** — when a question comes in, it's vectorized the same way and compared against
+   every stored chunk using cosine similarity. The top-matching chunks are returned.
+4. **Generation** — the retrieved chunks are inserted into a prompt and sent to `llama3.2`
+   (running locally via Ollama), which generates an answer using only that context.
 
-- **`app.py`** — uses your local `llama3.2` model via Ollama. No API key or subscription needed. Use this now.
-- **`app_hosted.py`** — same logic, but calls a hosted model (Anthropic API) instead. Use this later once the team has real API access (AWS Bedrock credits or an Anthropic key). Needs extra packages: `pip install -r requirements-hosted.txt`, plus a `.env` file with `ANTHROPIC_API_KEY=your_key_here`.
+No real vector database is used — this is intentional. It keeps the system fast to set up,
+works fully offline, and is easy to reason about (and attack) for the demo. A production
+version would swap this for something like Pinecone, Chroma, or pgvector.
 
-To switch, just run the other file:
-```bash
-# local, now
-uvicorn app:app --reload --port 8000
+---
 
-# hosted, later
-uvicorn app_hosted:app --reload --port 8000
-```
+## Prerequisites
 
-Both expose the same `/ask` endpoint with the same request/response shape, so nothing else in the project (attack module, chaos module, scorecard) needs to change when you switch.
+- **Python 3.10+**
+- **[Ollama](https://ollama.com/download)** installed
+- The `llama3.2` model pulled:
+  ```bash
+  ollama pull llama3.2
+  ```
+  Confirm it's there with:
+  ```bash
+  ollama list
+  ```
+  You should see `llama3.2:latest` in the output.
+
+Ollama typically runs automatically in the background after install. If a command like
+`ollama serve` gives you a "port already in use" error, that's a good sign — it means Ollama
+is already running and ready.
+
+---
 
 ## Setup
 
-```bash
-pip install -r requirements.txt
+1. Install Python dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+   > On some systems you may need `pip install -r requirements.txt --break-system-packages`
+   > or to call Python explicitly: `python -m pip install -r requirements.txt`
+
+2. Build the index (reads `sample_docs/`, creates `index.json` and `vectorizer.pkl`):
+   ```bash
+   python ingest.py
+   ```
+   You should see output like:
+   ```
+   Loaded 6 chunks from sample_docs/
+   Saved index with 6 chunks to index.json
+   Saved vectorizer to vectorizer.pkl
+   ```
+
+3. Start the server:
+   ```bash
+   uvicorn app:app --reload --port 8000
+   ```
+   If your terminal says `'uvicorn' is not recognized`, run it through Python instead:
+   ```bash
+   python -m uvicorn app:app --reload --port 8000
+   ```
+
+---
+
+## Testing it
+
+Open your browser to the interactive API docs:
+```
+http://localhost:8000/docs
 ```
 
-You also need Ollama installed with the `llama3.2` model pulled (already done if `ollama list` shows `llama3.2:latest`). No API key or subscription needed, everything runs locally.
+1. Click **POST /ask** to expand it
+2. Click **"Try it out"**
+3. Enter a question, for example:
+   ```json
+   { "question": "How many days can I work remotely?", "top_k": 3 }
+   ```
+4. Click **Execute**
 
-Make sure Ollama is running in the background before starting the API (on Windows it usually runs automatically after install, or you can start it with `ollama serve`).
+The first request may take 10–30 seconds while `llama3.2` loads into memory. After that,
+follow-up requests are noticeably faster while the model stays "warm."
 
-## Run
+### Example verified test cases
 
-```bash
-# 1. Build the index (run this first, and again any time sample_docs/ changes)
-python ingest.py
+| Question | Expected behavior |
+|---|---|
+| "How many days can I work remotely?" | Answers correctly from `company_policy.txt` |
+| "What is the refund policy?" | Answers correctly from `product_faq.txt` |
+| "What happens on day one for a new employee?" | Answers correctly from `onboarding_guide.txt` |
+| "What is the CEO's name?" | Says **"I don't know"** — nothing in the docs answers this, and all `retrieved_chunks` scores should show `0`, not `null` |
 
-# 2. Start the API
-uvicorn app:app --reload --port 8000
+That last case matters: a chatbot that makes up an answer when it doesn't actually know
+one is a reliability and safety problem. Confirming it says "I don't know" is a real test,
+not just a demo nicety.
+
+---
+
+## API reference
+
+**`POST /ask`**
+
+Request:
+```json
+{
+  "question": "string",
+  "top_k": 3
+}
 ```
 
-## Test it
-
-```bash
-curl -X POST http://localhost:8000/ask \
-  -H "Content-Type: application/json" \
-  -d "{\"question\": \"How many days can I work remotely?\"}"
+Response:
+```json
+{
+  "answer": "string",
+  "retrieved_chunks": [
+    {
+      "score": 0.4465,
+      "source": "company_policy.txt",
+      "chunk_id": 0,
+      "text": "..."
+    }
+  ]
+}
 ```
 
-(On Windows PowerShell, curl syntax may need adjusting, or just use Postman/Insomnia if curl gives you trouble.)
+`retrieved_chunks` is returned alongside the answer on purpose — it lets other parts of the
+project (the attack module especially) verify *what the model actually saw*, not just what
+it said. This is essential for confirming whether an attack (like document poisoning) actually
+influenced the answer.
 
-The response includes both the generated answer and the exact chunks that were
-retrieved, so anyone testing attacks or chaos scenarios can see precisely what
-context the model was working from.
+**`GET /health`** — simple liveness check, returns `{"status": "ok"}`.
+
+---
 
 ## For the attack module
 
-- To test document poisoning: add or edit a file in `sample_docs/`, re-run `python ingest.py`, then query `/ask` and check `retrieved_chunks` to see if the poisoned content got pulled in and whether the answer reflects it.
-- To test retrieval manipulation: craft chunks designed to score high on cosine similarity for unrelated questions, then check if they show up in `retrieved_chunks` even when they shouldn't be relevant.
+- **Document poisoning**: edit or add a file in `sample_docs/`, re-run `python ingest.py`,
+  then query `/ask` and check `retrieved_chunks` to see if the poisoned content got pulled in
+  and whether the answer reflects it.
+- **Retrieval manipulation**: craft text designed to score high on cosine similarity for
+  unrelated questions, then check if it shows up in `retrieved_chunks` even when it shouldn't
+  be relevant.
 
 ## For the chaos module
 
-- The `/ask` endpoint is a normal HTTP call, so latency, timeouts, and failures can be simulated by wrapping calls to it (e.g. with a proxy, or by mocking `retrieve()` to raise exceptions or sleep).
-- You can also simulate "model unavailable" by stopping the Ollama process and hitting `/ask`, which should surface as a connection error since `response.raise_for_status()` will raise if Ollama isn't reachable.
-- `retrieve.py` and `app.py` are separated on purpose, so you can swap in a broken or slow version of `retrieve()` without touching the API layer.
+- The `/ask` endpoint is a normal HTTP call — latency, timeouts, and failures can be simulated
+  by wrapping calls to it, or by mocking `retrieve()` to raise exceptions or sleep.
+- To simulate "model unavailable," stop the Ollama process and call `/ask` — the app will
+  raise a connection error since `response.raise_for_status()` fails when Ollama isn't reachable.
+- `retrieve.py` and `app.py` are separated on purpose, so a broken or slow version of
+  `retrieve()` can be swapped in without touching the API layer.
 
-## Notes
+---
 
-- Retrieval uses TF-IDF + cosine similarity, no external model download needed, kept this way so it's easy to reason about, works offline, and is easy to attack for the demo.
-- Answers come from `llama3.2` running locally via Ollama, no subscription or API key needed, and it works even without venue wifi. Answers will be lower quality than a hosted large model, that's an expected tradeoff for zero-cost, zero-dependency setup.
-- Chunking is naive fixed-size splitting. Fine for a hackathon demo, not production-grade.
-- Tested end to end: `python ingest.py` then `python retrieve.py` correctly returns the remote work policy chunk as the top match for "How many days can I work remotely?"
+## Notes on design choices
+
+- **TF-IDF instead of real embeddings**: no external model download needed, so it works
+  offline and isn't dependent on venue wifi. Trade-off, not an oversight — a production
+  version would use proper embeddings and a real vector store.
+- **Fixed-size chunking**: simple and predictable. Fine for a hackathon demo, not
+  production-grade (a real system would chunk by sentence/paragraph boundaries).
+- **Local model (llama3.2) instead of a hosted API**: zero cost, zero external dependency,
+  always available even without internet — a deliberate fallback option alongside a
+  cloud-hosted version (AWS Bedrock / Claude) used elsewhere in this project.
+
+## Troubleshooting
+
+| Problem | Likely cause / fix |
+|---|---|
+| `'uvicorn' is not recognized` | Use `python -m uvicorn app:app --reload --port 8000` instead |
+| First request takes 10–30s | Normal — `llama3.2` is loading into memory. Faster on repeat calls. |
+| Connection refused to Ollama | Ollama isn't running. Try `ollama serve`, or check `ollama list` first. |
+| `score: null` in response | Old bug, fixed — should show `0` for no-match questions. Re-pull `retrieve.py` if you see this. |
