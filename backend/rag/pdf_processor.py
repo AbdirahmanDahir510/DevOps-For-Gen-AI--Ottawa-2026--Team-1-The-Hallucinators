@@ -18,13 +18,15 @@ def extract_text(pdf_path: str) -> str:
     if not os.path.exists(pdf_path):
         raise FileNotFoundError(f"PDF not found: {pdf_path}")
 
-    reader = PdfReader(pdf_path)
-
     pages = []
-    for page in reader.pages:
-        text = page.extract_text()
-        if text:
-            pages.append(text.strip())
+    with open(pdf_path, "rb") as f:
+        reader = PdfReader(f)
+        for page in reader.pages:
+            # extract_text() can return None on some pypdf versions
+            text = page.extract_text() or ""
+            text = text.strip()
+            if text:
+                pages.append(text)
 
     if not pages:
         raise ValueError("PDF contains no extractable text.")
@@ -67,8 +69,9 @@ def process_pdf(pdf_path: str) -> dict:
       - page_count: number of pages in the PDF
       - chunk_count: number of chunks produced
     """
-    reader = PdfReader(pdf_path)
-    page_count = len(reader.pages)
+    with open(pdf_path, "rb") as f:
+        reader = PdfReader(f)
+        page_count = len(reader.pages)
 
     text = extract_text(pdf_path)
     chunks = chunk_text(text)

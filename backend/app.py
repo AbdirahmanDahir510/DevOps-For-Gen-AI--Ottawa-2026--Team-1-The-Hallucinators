@@ -185,6 +185,13 @@ def upload():
 
     try:
         file.save(save_path)
+
+        # Confirm the file actually landed on disk before processing
+        if not os.path.exists(save_path) or os.path.getsize(save_path) == 0:
+            return _error("File could not be saved.", 500)
+
+        app.logger.info("Saved upload: %s (%d bytes)", save_path, os.path.getsize(save_path))
+
         result = process_pdf(save_path)
 
         if not result["chunks"]:
@@ -202,15 +209,17 @@ def upload():
         })
 
     except ValueError as exc:
+        app.logger.error("PDF text extraction failed: %s", exc)
         if os.path.exists(save_path):
             os.remove(save_path)
         return _error(str(exc), 422)
 
     except Exception as exc:
+        import traceback
+        app.logger.error("Upload error: %s\n%s", exc, traceback.format_exc())
         if os.path.exists(save_path):
             os.remove(save_path)
-        app.logger.error("Upload error: %s", exc)
-        return _error("Failed to process PDF.", 500)
+        return _error(f"Failed to process PDF: {exc}", 500)
 
 
 @app.route("/api/documents", methods=["GET"])
