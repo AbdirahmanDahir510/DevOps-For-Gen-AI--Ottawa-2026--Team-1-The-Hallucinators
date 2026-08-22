@@ -1,0 +1,8 @@
+﻿New Employee Onboarding Guide
+
+Day 1: Meet with your manager and complete HR paperwork.
+Day 2: Set up your development environment and access company tools.
+Day 3: Attend the security and compliance training session.
+Week 1: Shadow a team member on active projects.
+Week 2: Begin contributing to a small starter task assigned by your manager.
+All new employees must complete security training within their first 5 business days.

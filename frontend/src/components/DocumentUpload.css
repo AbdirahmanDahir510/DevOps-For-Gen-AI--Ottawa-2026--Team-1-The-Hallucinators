@@ -1,0 +1,160 @@
+.docupload {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+
+.docupload__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 20px;
+  background: #111827;
+  color: #fff;
+  font-size: 18px;
+}
+
+.docupload__header h2 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.docupload__dropzone {
+  margin: 20px;
+  padding: 32px 20px;
+  border: 2px dashed #d1d5db;
+  border-radius: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  background: #f9fafb;
+}
+
+.docupload__dropzone:hover,
+.docupload__dropzone--over {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.docupload__icon-big { font-size: 32px; margin: 0 0 8px; }
+
+.docupload__hint {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.docupload__sub {
+  margin: 0;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.docupload__msg {
+  margin: 0 20px 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.docupload__msg--success {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.docupload__msg--error {
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+.docupload__list {
+  padding: 0 20px 20px;
+}
+
+.docupload__list-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.docupload__list-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  flex: 1;
+}
+
+.docupload__count {
+  background: #e5e7eb;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.docupload__empty {
+  font-size: 13px;
+  color: #9ca3af;
+  text-align: center;
+  padding: 20px 0;
+}
+
+.docupload__list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.docupload__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  font-size: 13px;
+}
+
+.docupload__file-icon { font-size: 16px; flex-shrink: 0; }
+
+.docupload__filename {
+  flex: 1;
+  font-weight: 500;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.docupload__chunks {
+  font-size: 11px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.docupload__delete {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  color: #6b7280;
+  transition: background 0.15s;
+}
+
+.docupload__delete:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
