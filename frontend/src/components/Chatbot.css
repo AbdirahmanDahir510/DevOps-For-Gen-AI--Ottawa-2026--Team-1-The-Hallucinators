@@ -160,3 +160,19 @@
 
 .chatbot__send:hover:not(:disabled) { background: #1d4ed8; }
 .chatbot__send:disabled { background: #9ca3af; cursor: not-allowed; }
+
+.chatbot__doc-badge {
+  font-size: 11px;
+  background: #d1fae5;
+  color: #065f46;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.chatbot__doc-badge--empty {
+  background: #374151;
+  color: #9ca3af;
+  font-weight: 400;
+}

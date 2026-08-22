@@ -3,7 +3,7 @@ import "./DocumentUpload.css";
 
 const API = "http://localhost:5000";
 
-export default function DocumentUpload() {
+export default function DocumentUpload({ onDocCountChange }) {
   const [documents, setDocuments] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -19,6 +19,7 @@ export default function DocumentUpload() {
       const res = await fetch(`${API}/api/documents`);
       const data = await res.json();
       setDocuments(data.documents || []);
+      onDocCountChange?.(data.total ?? 0);
     } catch {
       // silently ignore — backend may not be running yet
     }

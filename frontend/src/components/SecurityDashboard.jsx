@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Chatbot from "./Chatbot";
 import DocumentUpload from "./DocumentUpload";
 import SecurityScore from "./SecurityScore";
@@ -9,18 +9,31 @@ const API = "http://localhost:5000";
 
 const TABS = [
   { id: "chat",     label: "Chat",      icon: "🤖" },
-  { id: "docs",     label: "Documents", icon: "📄" },
   { id: "security", label: "Security",  icon: "🛡️" },
 ];
 
 export default function SecurityDashboard() {
   const [tab, setTab] = useState("chat");
+  const [docsOpen, setDocsOpen] = useState(true);
+  const [docCount, setDocCount] = useState(0);
 
   // Test state — lifted here so score persists across tab switches
   const [testResults, setTestResults] = useState([]);
   const [testRunning, setTestRunning] = useState(false);
   const [testScores, setTestScores] = useState(null);
   const [testMeta, setTestMeta] = useState({ total: 0, passed: 0, failed: 0, duration: null });
+
+  // Poll document count so the chatbot header badge stays current
+  useEffect(() => {
+    const refresh = () =>
+      fetch(`${API}/api/documents`)
+        .then((r) => r.json())
+        .then((d) => setDocCount(d.total ?? 0))
+        .catch(() => {});
+    refresh();
+    const id = setInterval(refresh, 5000);
+    return () => clearInterval(id);
+  }, []);
 
   const runTests = async (suite = "all") => {
     setTestRunning(true);
@@ -85,17 +98,25 @@ export default function SecurityDashboard() {
 
       {/* Content */}
       <main className="dashboard__main">
-        {/* Chat tab */}
+        {/* Chat tab — split layout: docs panel + chat */}
         {tab === "chat" && (
-          <div className="dashboard__chat-layout">
-            <Chatbot />
-          </div>
-        )}
+          <div className="dashboard__chat-split">
+            {/* Left: document panel */}
+            <div className={`dashboard__doc-panel${docsOpen ? "" : " dashboard__doc-panel--collapsed"}`}>
+              <button
+                className="dashboard__doc-toggle"
+                onClick={() => setDocsOpen((o) => !o)}
+                aria-label={docsOpen ? "Collapse document panel" : "Expand document panel"}
+              >
+                {docsOpen ? "◀ Hide" : "▶"}
+              </button>
+              {docsOpen && <DocumentUpload onDocCountChange={setDocCount} />}
+            </div>
 
-        {/* Docs tab */}
-        {tab === "docs" && (
-          <div className="dashboard__docs-layout">
-            <DocumentUpload />
+            {/* Right: chat */}
+            <div className="dashboard__chat-pane">
+              <Chatbot docCount={docCount} />
+            </div>
           </div>
         )}
 

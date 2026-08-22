@@ -9,10 +9,7 @@ import json
 import os
 import time
 
-BASE_URL = "http://localhost:5000"
-CHAT_URL = f"{BASE_URL}/api/chat"
-UPLOAD_URL = f"{BASE_URL}/api/upload"
-HEALTH_URL = f"{BASE_URL}/api/health"
+DEFAULT_BASE_URL = "http://localhost:5000"
 REQUEST_TIMEOUT = 15   # deliberately short for chaos tests
 
 
@@ -28,219 +25,153 @@ def _result(name: str, category: str, passed: bool, severity: str, details: str)
     }
 
 
+def _urls(base_url: str) -> tuple[str, str, str]:
+    return (
+        f"{base_url}/api/chat",
+        f"{base_url}/api/upload",
+        f"{base_url}/api/health",
+    )
+
+
 # ── Individual chaos tests ───────────────────────────────────────────────────
 
-def test_empty_message() -> dict:
-    """POST /api/chat with an empty message field — should return HTTP 400."""
+def test_empty_message(base_url: str = DEFAULT_BASE_URL) -> dict:
+    CHAT_URL, _, _ = _urls(base_url)
     try:
         resp = requests.post(CHAT_URL, json={"message": ""}, timeout=REQUEST_TIMEOUT)
         passed = resp.status_code == 400
-        return _result(
-            "Empty Message",
-            "Chaos",
-            passed,
-            "LOW",
-            f"Status: {resp.status_code} (expected 400). Body: {resp.text[:150]}",
-        )
+        return _result("Empty Message", "Chaos", passed, "LOW",
+                       f"Status: {resp.status_code} (expected 400). Body: {resp.text[:150]}")
     except Exception as e:
         return _result("Empty Message", "Chaos", False, "LOW", str(e))
 
 
-def test_missing_message_field() -> dict:
-    """POST /api/chat with no 'message' key at all — should return HTTP 400."""
+def test_missing_message_field(base_url: str = DEFAULT_BASE_URL) -> dict:
+    CHAT_URL, _, _ = _urls(base_url)
     try:
         resp = requests.post(CHAT_URL, json={"query": "hello"}, timeout=REQUEST_TIMEOUT)
         passed = resp.status_code == 400
-        return _result(
-            "Missing Message Field",
-            "Chaos",
-            passed,
-            "LOW",
-            f"Status: {resp.status_code} (expected 400). Body: {resp.text[:150]}",
-        )
+        return _result("Missing Message Field", "Chaos", passed, "LOW",
+                       f"Status: {resp.status_code} (expected 400). Body: {resp.text[:150]}")
     except Exception as e:
         return _result("Missing Message Field", "Chaos", False, "LOW", str(e))
 
 
-def test_invalid_json() -> dict:
-    """POST /api/chat with a malformed JSON body — should return HTTP 400."""
+def test_invalid_json(base_url: str = DEFAULT_BASE_URL) -> dict:
+    CHAT_URL, _, _ = _urls(base_url)
     try:
-        resp = requests.post(
-            CHAT_URL,
-            data="this is not json {{{{",
-            headers={"Content-Type": "application/json"},
-            timeout=REQUEST_TIMEOUT,
-        )
+        resp = requests.post(CHAT_URL, data="this is not json {{{{",
+                             headers={"Content-Type": "application/json"},
+                             timeout=REQUEST_TIMEOUT)
         passed = resp.status_code == 400
-        return _result(
-            "Invalid JSON Body",
-            "Chaos",
-            passed,
-            "LOW",
-            f"Status: {resp.status_code} (expected 400). Body: {resp.text[:150]}",
-        )
+        return _result("Invalid JSON Body", "Chaos", passed, "LOW",
+                       f"Status: {resp.status_code} (expected 400). Body: {resp.text[:150]}")
     except Exception as e:
         return _result("Invalid JSON Body", "Chaos", False, "LOW", str(e))
 
 
-def test_oversized_input() -> dict:
-    """
-    POST /api/chat with an extremely large message (100 KB).
-    Should either accept it or return a clean 413/400 — not crash.
-    """
+def test_oversized_input(base_url: str = DEFAULT_BASE_URL) -> dict:
+    CHAT_URL, _, _ = _urls(base_url)
     huge_message = "A" * 100_000
     try:
-        resp = requests.post(
-            CHAT_URL,
-            json={"message": huge_message},
-            timeout=30,   # give it a bit more time
-        )
-        # Any clean HTTP response (not a 5xx crash) is a pass
+        resp = requests.post(CHAT_URL, json={"message": huge_message}, timeout=30)
         passed = resp.status_code < 500
-        return _result(
-            "Oversized Input (100 KB)",
-            "Chaos",
-            passed,
-            "MEDIUM",
-            f"Status: {resp.status_code}. Body: {resp.text[:150]}",
-        )
+        return _result("Oversized Input (100 KB)", "Chaos", passed, "MEDIUM",
+                       f"Status: {resp.status_code}. Body: {resp.text[:150]}")
     except requests.exceptions.Timeout:
-        # Timeout is acceptable — it means the server is still alive
         return _result("Oversized Input (100 KB)", "Chaos", True, "MEDIUM",
                        "Request timed out (server alive, did not crash)")
     except Exception as e:
         return _result("Oversized Input (100 KB)", "Chaos", False, "MEDIUM", str(e))
 
 
-def test_null_message() -> dict:
-    """POST /api/chat with message = null — should return HTTP 400."""
+def test_null_message(base_url: str = DEFAULT_BASE_URL) -> dict:
+    CHAT_URL, _, _ = _urls(base_url)
     try:
         resp = requests.post(CHAT_URL, json={"message": None}, timeout=REQUEST_TIMEOUT)
         passed = resp.status_code == 400
-        return _result(
-            "Null Message Value",
-            "Chaos",
-            passed,
-            "LOW",
-            f"Status: {resp.status_code} (expected 400). Body: {resp.text[:150]}",
-        )
+        return _result("Null Message Value", "Chaos", passed, "LOW",
+                       f"Status: {resp.status_code} (expected 400). Body: {resp.text[:150]}")
     except Exception as e:
         return _result("Null Message Value", "Chaos", False, "LOW", str(e))
 
 
-def test_non_pdf_upload() -> dict:
-    """Upload a .txt file to /api/upload — should reject with 400."""
+def test_non_pdf_upload(base_url: str = DEFAULT_BASE_URL) -> dict:
+    _, UPLOAD_URL, _ = _urls(base_url)
     try:
-        fake_file_content = b"This is not a PDF."
-        resp = requests.post(
-            UPLOAD_URL,
-            files={"file": ("test.txt", fake_file_content, "text/plain")},
-            timeout=REQUEST_TIMEOUT,
-        )
+        resp = requests.post(UPLOAD_URL,
+                             files={"file": ("test.txt", b"This is not a PDF.", "text/plain")},
+                             timeout=REQUEST_TIMEOUT)
         passed = resp.status_code == 400
-        return _result(
-            "Non-PDF Upload",
-            "Chaos",
-            passed,
-            "LOW",
-            f"Status: {resp.status_code} (expected 400). Body: {resp.text[:150]}",
-        )
+        return _result("Non-PDF Upload", "Chaos", passed, "LOW",
+                       f"Status: {resp.status_code} (expected 400). Body: {resp.text[:150]}")
     except Exception as e:
         return _result("Non-PDF Upload", "Chaos", False, "LOW", str(e))
 
 
-def test_empty_pdf_upload() -> dict:
-    """Upload a zero-byte file named .pdf — should fail gracefully."""
+def test_empty_pdf_upload(base_url: str = DEFAULT_BASE_URL) -> dict:
+    _, UPLOAD_URL, _ = _urls(base_url)
     try:
-        resp = requests.post(
-            UPLOAD_URL,
-            files={"file": ("empty.pdf", b"", "application/pdf")},
-            timeout=REQUEST_TIMEOUT,
-        )
+        resp = requests.post(UPLOAD_URL,
+                             files={"file": ("empty.pdf", b"", "application/pdf")},
+                             timeout=REQUEST_TIMEOUT)
         passed = resp.status_code in (400, 422)
-        return _result(
-            "Empty PDF Upload",
-            "Chaos",
-            passed,
-            "LOW",
-            f"Status: {resp.status_code} (expected 400/422). Body: {resp.text[:150]}",
-        )
+        return _result("Empty PDF Upload", "Chaos", passed, "LOW",
+                       f"Status: {resp.status_code} (expected 400/422). Body: {resp.text[:150]}")
     except Exception as e:
         return _result("Empty PDF Upload", "Chaos", False, "LOW", str(e))
 
 
-def test_upload_no_file_field() -> dict:
-    """POST to /api/upload with no file in the form — should return 400."""
+def test_upload_no_file_field(base_url: str = DEFAULT_BASE_URL) -> dict:
+    _, UPLOAD_URL, _ = _urls(base_url)
     try:
         resp = requests.post(UPLOAD_URL, data={}, timeout=REQUEST_TIMEOUT)
         passed = resp.status_code == 400
-        return _result(
-            "Upload With No File Field",
-            "Chaos",
-            passed,
-            "LOW",
-            f"Status: {resp.status_code} (expected 400). Body: {resp.text[:150]}",
-        )
+        return _result("Upload With No File Field", "Chaos", passed, "LOW",
+                       f"Status: {resp.status_code} (expected 400). Body: {resp.text[:150]}")
     except Exception as e:
         return _result("Upload With No File Field", "Chaos", False, "LOW", str(e))
 
 
-def test_health_endpoint() -> dict:
-    """GET /api/health should return 200 with status and model fields."""
+def test_health_endpoint(base_url: str = DEFAULT_BASE_URL) -> dict:
+    _, _, HEALTH_URL = _urls(base_url)
     try:
         resp = requests.get(HEALTH_URL, timeout=REQUEST_TIMEOUT)
         body = resp.json()
         passed = resp.status_code == 200 and "status" in body and "model" in body
-        return _result(
-            "Health Endpoint",
-            "Chaos",
-            passed,
-            "LOW",
-            f"Status: {resp.status_code}. Body: {body}",
-        )
+        return _result("Health Endpoint", "Chaos", passed, "LOW",
+                       f"Status: {resp.status_code}. Body: {body}")
     except Exception as e:
         return _result("Health Endpoint", "Chaos", False, "LOW", str(e))
 
 
-def test_rapid_fire_requests() -> dict:
-    """
-    Send 10 requests in quick succession.
-    All should return clean responses (no crashes, no 5xx).
-    """
+def test_rapid_fire_requests(base_url: str = DEFAULT_BASE_URL) -> dict:
+    CHAT_URL, _, _ = _urls(base_url)
     failures = []
     for i in range(10):
         try:
-            resp = requests.post(
-                CHAT_URL,
-                json={"message": f"Rapid fire test {i}"},
-                timeout=REQUEST_TIMEOUT,
-            )
+            resp = requests.post(CHAT_URL, json={"message": f"Rapid fire test {i}"},
+                                 timeout=REQUEST_TIMEOUT)
             if resp.status_code >= 500:
                 failures.append(f"Request {i}: HTTP {resp.status_code}")
         except Exception as e:
             failures.append(f"Request {i}: {e}")
-
     passed = len(failures) == 0
-    return _result(
-        "Rapid Fire Requests (10x)",
-        "Chaos",
-        passed,
-        "MEDIUM",
-        f"Failures: {failures}" if failures else "All 10 requests succeeded cleanly",
-    )
+    return _result("Rapid Fire Requests (10x)", "Chaos", passed, "MEDIUM",
+                   f"Failures: {failures}" if failures else "All 10 requests succeeded cleanly")
 
 
-def run_all() -> list[dict]:
+def run_all(base_url: str = DEFAULT_BASE_URL) -> list[dict]:
     """Run all chaos tests and return a list of result dicts."""
     return [
-        test_health_endpoint(),
-        test_empty_message(),
-        test_missing_message_field(),
-        test_invalid_json(),
-        test_null_message(),
-        test_oversized_input(),
-        test_non_pdf_upload(),
-        test_empty_pdf_upload(),
-        test_upload_no_file_field(),
-        test_rapid_fire_requests(),
+        test_health_endpoint(base_url),
+        test_empty_message(base_url),
+        test_missing_message_field(base_url),
+        test_invalid_json(base_url),
+        test_null_message(base_url),
+        test_oversized_input(base_url),
+        test_non_pdf_upload(base_url),
+        test_empty_pdf_upload(base_url),
+        test_upload_no_file_field(base_url),
+        test_rapid_fire_requests(base_url),
     ]

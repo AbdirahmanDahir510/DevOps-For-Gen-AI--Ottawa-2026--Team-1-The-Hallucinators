@@ -3,11 +3,11 @@ import "./Chatbot.css";
 
 const API = "http://localhost:5000";
 
-export default function Chatbot() {
+export default function Chatbot({ docCount = 0 }) {
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      text: "Hello! I'm your local AI security assistant. Ask me anything, or upload a PDF document to chat with its contents.",
+      text: "Hello! I'm your local AI security assistant. Upload a PDF in the panel on the left, then ask me anything about it.",
     },
   ]);
   const [input, setInput] = useState("");
@@ -74,6 +74,15 @@ export default function Chatbot() {
         <span className="chatbot__icon">🤖</span>
         <h2>AI Security Chatbot</h2>
         <span className="chatbot__badge">Llama 3.2 · Ollama</span>
+        {docCount > 0 ? (
+          <span className="chatbot__doc-badge" title="Documents loaded — answers will use RAG">
+            📄 {docCount} doc{docCount !== 1 ? "s" : ""} loaded
+          </span>
+        ) : (
+          <span className="chatbot__doc-badge chatbot__doc-badge--empty" title="No documents uploaded yet">
+            📄 No docs
+          </span>
+        )}
       </div>
 
       <div className="chatbot__messages" aria-live="polite" aria-label="Chat messages">
