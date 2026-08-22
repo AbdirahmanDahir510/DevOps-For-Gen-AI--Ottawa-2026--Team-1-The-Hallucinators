@@ -1,0 +1,141 @@
+.dashboard {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f3f4f6;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #111827;
+}
+
+/* Top bar */
+.dashboard__topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 32px;
+  background: #111827;
+  color: #fff;
+  gap: 16px;
+}
+
+.dashboard__brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.dashboard__brand-icon { font-size: 32px; }
+
+.dashboard__title {
+  margin: 0 0 2px;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.dashboard__subtitle {
+  margin: 0;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.dashboard__score-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #1f2937;
+  border: 2px solid #10b981;
+  border-radius: 12px;
+  padding: 8px 20px;
+}
+
+.dashboard__score-num {
+  font-size: 24px;
+  font-weight: 700;
+  color: #10b981;
+}
+
+.dashboard__score-lbl {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+/* Tabs */
+.dashboard__tabs {
+  display: flex;
+  gap: 0;
+  background: #1f2937;
+  padding: 0 32px;
+  border-bottom: 2px solid #374151;
+}
+
+.dashboard__tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 13px 22px;
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.dashboard__tab:hover { color: #d1d5db; }
+
+.dashboard__tab--active {
+  color: #fff;
+  border-bottom-color: #3b82f6;
+}
+
+/* Main */
+.dashboard__main {
+  flex: 1;
+  padding: 28px 32px;
+}
+
+/* Chat layout */
+.dashboard__chat-layout {
+  max-width: 900px;
+  margin: 0 auto;
+  height: calc(100vh - 220px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Docs layout */
+.dashboard__docs-layout {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+/* Security layout */
+.dashboard__security-layout {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 24px;
+  align-items: start;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.dashboard__security-left { position: sticky; top: 20px; }
+
+@media (max-width: 800px) {
+  .dashboard__topbar { padding: 14px 16px; }
+  .dashboard__tabs   { padding: 0 8px; }
+  .dashboard__main   { padding: 16px; }
+
+  .dashboard__security-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard__security-left { position: static; }
+
+  .dashboard__chat-layout {
+    height: calc(100vh - 180px);
+  }
+}
