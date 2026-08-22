@@ -1,6 +1,0 @@
-flask
-flask-cors
-ollama
-pypdf
-numpy
-requests
