@@ -32,7 +32,7 @@ from retrieve import retrieve
 app = FastAPI(title="Sample RAG Chatbot (AWS Bedrock)")
 
 # Update this to match the exact model ID enabled in your Bedrock account
-MODEL_ID = "anthropic.claude-sonnet-4-5-20250929-v1:0"
+MODEL_ID = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
 AWS_REGION = os.environ.get("AWS_DEFAULT_REGION", "us-east-2")
 
 bedrock = boto3.client("bedrock-runtime", region_name=AWS_REGION)
